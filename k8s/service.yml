@@ -14,7 +14,7 @@ spec:
       port: 3306
       targetPort: 3306
       protocol: TCP
-  type: ClusterIP       
+  type: LoadBalancer     
 
 ---
 apiVersion: v1
@@ -33,7 +33,7 @@ spec:
       port: 5000
       targetPort: 5000
       protocol: TCP
-  type: ClusterIP        
+  type: LoadBalancer      
 ---
 apiVersion: v1
 kind: Service
@@ -51,4 +51,4 @@ spec:
       port: 5173
       targetPort: 5173
       protocol: TCP
-  type: ClusterIP        
+  type: LoadBalancer      
