@@ -164,8 +164,6 @@ jobs:
             terraform fmt -recursive
             echo "✅ Terraform validate passed!"
           fi
-
- 
   # ─────────────────────────────────────────────────────────────────────────────
   # JOB 6: Build, Push to AWS ECR, and Deploy to AWS EKS (CD Phase)
   # ─────────────────────────────────────────────────────────────────────────────
