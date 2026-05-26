@@ -58,7 +58,7 @@ resource "aws_security_group" "eks_cluster" {
 resource "aws_eks_cluster" "circuitops" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster.arn
-  version  = "1.29"
+  version  = var.cluster_version
 
   vpc_config {
     subnet_ids              = [
@@ -154,3 +154,21 @@ resource "aws_eks_node_group" "circuitops_nodes" {
     Environment = var.environment
   }
 }
+
+# ── IAM Role Policy Attachment for EBS CSI Driver ───────────────────────────
+resource "aws_iam_role_policy_attachment" "eks_ebs_csi_driver" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.eks_nodes.name
+}
+
+# ── Amazon EBS CSI Driver EKS Add-on ──────────────────────────────────────────
+resource "aws_eks_addon" "ebs_csi" {
+  cluster_name = aws_eks_cluster.circuitops.name
+  addon_name   = "aws-ebs-csi-driver"
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_ebs_csi_driver,
+    aws_eks_node_group.circuitops_nodes
+  ]
+}
+
