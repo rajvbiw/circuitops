@@ -87,7 +87,7 @@ metadata:
     app.kubernetes.io/name: circuitops-marketplace
     app.kubernetes.io/component: backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: circuitops-backend
