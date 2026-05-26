@@ -233,9 +233,10 @@ jobs:
           aws eks update-kubeconfig \
             --region ${{ secrets.AWS_REGION || env.AWS_REGION }} \
             --name ${{ env.EKS_CLUSTER_NAME }}
-  - name: 🗑️ Delete all existing pods in namespace
-    run: |
-      kubectl delete pods --all -n ${{ env.K8S_NAMESPACE }} || true
+
+      - name: 🗑️ Delete all existing pods in namespace
+        run: |
+          kubectl delete pods --all -n ${{ env.K8S_NAMESPACE }} || true
 
       - name: 📝 Update Deployment Manifests with new ECR Tags
         env:
