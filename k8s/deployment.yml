@@ -103,7 +103,11 @@ metadata:
     app.kubernetes.io/name: circuitops-marketplace
     app.kubernetes.io/component: backend
 spec:
+<<<<<<< HEAD
   replicas: 2
+=======
+  replicas: 1
+>>>>>>> 4ad74bb0a106706b9c95248e139439e1e9e47681
   selector:
     matchLabels:
       app: circuitops-backend
@@ -209,7 +213,11 @@ metadata:
     app.kubernetes.io/name: circuitops-marketplace
     app.kubernetes.io/component: frontend
 spec:
+<<<<<<< HEAD
   replicas: 2
+=======
+  replicas: 1
+>>>>>>> 4ad74bb0a106706b9c95248e139439e1e9e47681
   selector:
     matchLabels:
       app: circuitops-frontend
