@@ -199,14 +199,20 @@ jobs:
       - name: 🧪 Verify Backend Database Connection & API Endpoints
         run: |
           echo "=== Testing Products Endpoint ==="
+          set +e
           PRODUCTS_RESPONSE=$(curl -s -f http://localhost:5001/api/v1/products?limit=8)
-          if [ $? -eq 0 ] && echo "$PRODUCTS_RESPONSE" | grep -q "success"; then
+          CURL_EXIT=$?
+          set -e
+          if [ $CURL_EXIT -eq 0 ] && echo "$PRODUCTS_RESPONSE" | grep -q "success"; then
             echo "✅ Backend successfully fetched products from database!"
             echo "$PRODUCTS_RESPONSE" | jq '.' | head -n 30
           else
-            echo "❌ Failed to fetch products from backend!"
+            echo "❌ Failed to fetch products from backend! Exit code: $CURL_EXIT"
             echo "Response: $PRODUCTS_RESPONSE"
+            echo "=== Backend Logs ==="
             docker compose logs backend
+            echo "=== MySQL Logs ==="
+            docker compose logs mysql
             exit 1
           fi
 
