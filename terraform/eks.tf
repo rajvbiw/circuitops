@@ -131,6 +131,7 @@ resource "aws_eks_node_group" "circuitops_nodes" {
   ]
 
   instance_types = [var.node_instance_type]
+  ami_type       = "AL2023_x86_64_STANDARD"
 
   scaling_config {
     desired_size = var.node_desired_count
