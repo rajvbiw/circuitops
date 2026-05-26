@@ -130,8 +130,10 @@ jobs:
 
       - name: 🔍 Secrets Scan (gitleaks)
         uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true  # Force push ke baad history na milne par fail na ho
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LOG_OPTS: --all  # Diff ki jagah full repo scan karo
 
   # ─────────────────────────────────────────────────────────────────────────────
   # JOB 4: Terraform Syntax Validate
