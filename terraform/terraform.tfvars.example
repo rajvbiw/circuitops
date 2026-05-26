@@ -1,0 +1,37 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CircuitOps Terraform — Variables Configuration File (Example Template)
+# Copy this file to 'terraform.tfvars' and insert your actual credentials!
+# ⚠️ DO NOT COMMIT 'terraform.tfvars' to Git! It contains confidential secrets.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── AWS Region and Environment ───────────────────────────────────────────────
+aws_region  = "ap-south-1"
+environment = "production"
+
+# ── EKS Configurations ───────────────────────────────────────────────────────
+cluster_name       = "circuitops-eks"
+cluster_version    = "1.29"
+node_instance_type = "t3.medium"
+node_desired_count = 2
+node_min_count     = 1
+node_max_count     = 5
+
+# ── Application Secret Variables (Insert your real values here!) ──────────────
+db_password = "YourSecureMySQLPassword@2026"
+jwt_secret  = "circuitops_super_secret_session_signing_jwt_key_2026"
+
+# ── AI Integrations (Optional) ────────────────────────────────────────────────
+openai_api_key = "sk-proj-..."
+claude_api_key = "sk-ant-..."
+
+# ── Cloudinary Image Hosting Credentials ─────────────────────────────────────
+cloudinary_cloud_name = "your_cloudinary_cloud_name"
+cloudinary_api_key    = "your_cloudinary_api_key"
+cloudinary_api_secret = "your_cloudinary_api_secret"
+
+# ── Razorpay Payment Gateway Credentials ─────────────────────────────────────
+razorpay_key_id     = "rzp_test_..."
+razorpay_key_secret = "your_razorpay_api_secret"
+
+# ── Grafana Admin Password ───────────────────────────────────────────────────
+grafana_admin_password = "CircuitOps@Grafana2026"
