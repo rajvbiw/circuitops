@@ -124,8 +124,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: circuitops-backend:latest
-          imagePullPolicy: IfNotPresent
+          image: 190444052124.dkr.ecr.ap-south-1.amazonaws.com/circuitops-backend:4ad74bb0a106706b9c95248e139439e1e9e47681
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
               name: http
@@ -230,8 +230,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: circuitops-frontend:latest
-          imagePullPolicy: IfNotPresent
+          image: 190444052124.dkr.ecr.ap-south-1.amazonaws.com/circuitops-frontend:4ad74bb0a106706b9c95248e139439e1e9e47681
+          imagePullPolicy: Always
           ports:
             - containerPort: 5173
               name: http
