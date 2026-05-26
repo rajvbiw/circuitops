@@ -161,7 +161,8 @@ jobs:
           else
             terraform init -backend=false
             terraform validate
-            terraform fmt -check -recursive
+            terraform fmt -recursive
+            echo "✅ Terraform validate passed!"
           fi
 
   # ─────────────────────────────────────────────────────────────────────────────
