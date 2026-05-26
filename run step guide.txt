@@ -1,0 +1,459 @@
+🔌 CircuitOps — Complete Run Guide
+EKS + Terraform + Kubernetes + Prometheus + Grafana
+Total Time: ~20-30 minutes | Cost: ~$0.10/hr (t3.medium × 2 nodes)
+
+📁 Final Terraform File Structure
+
+terraform/
+├── providers.tf      ✅ AWS + Kubernetes + Helm providers
+├── variables.tf      ✅ All variables
+├── terraform.tfvars  ✅ Aapki actual values (gitignore mein hai)
+├── vpc.tf            ✅ VPC, Subnets, IGW, NAT Gateway
+├── eks.tf            ✅ EKS Cluster + Node Group + IAM + OIDC
+├── monitoring.tf     ✅ Prometheus + Grafana + NGINX Ingress (Helm)
+├── main.tf           ✅ App resources (Namespace, ConfigMap, Deployments...)
+└── outputs.tf        ✅ Cluster endpoint, kubectl command, access URLs
+🛠️ PHASE 0 — Prerequisites Install Karo
+bash
+
+# 1. AWS CLI
+brew install awscli
+aws --version   # aws-cli/2.x.x
+# 2. Terraform
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+terraform --version  # Terraform v1.5+
+# 3. kubectl
+brew install kubectl
+kubectl version --client
+# 4. Helm
+brew install helm
+helm version
+# 5. Docker Desktop
+# https://www.docker.com/products/docker-desktop/
+docker --version
+🔑 PHASE 1 — AWS Setup
+Step 1.1 — AWS Account mein IAM User banao
+AWS Console → IAM → Users → Create User:
+
+Username: circuitops-terraform
+Permissions: AdministratorAccess (ya custom EKS/VPC/IAM policy)
+Access Key: Create karo → Download karo (CSV file)
+Step 1.2 — AWS CLI Configure karo
+bash
+
+aws configure
+
+AWS Access Key ID:     [apna Access Key ID paste karo]
+AWS Secret Access Key: [apna Secret Access Key paste karo]
+Default region name:   ap-south-1
+Default output format: json
+Step 1.3 — Verify karo
+bash
+
+aws sts get-caller-identity
+Expected output:
+
+json
+
+{
+  "UserId": "AIDA...",
+  "Account": "123456789012",
+  "Arn": "arn:aws:iam::123456789012:user/circuitops-terraform"
+}
+🐳 PHASE 2 — Docker Images Build Karo (ECR Push)
+Step 2.1 — ECR Repositories banao
+bash
+
+# AWS account ID save karo
+AWS_ACCOUNT_ID=$190444052124
+AWS_REGION="ap-south-1"
+# Backend repository
+aws ecr create-repository \
+  --repository-name circuitops-backend \
+  --region $AWS_REGION
+# Frontend repository
+aws ecr create-repository \
+  --repository-name circuitops-frontend \
+  --region $AWS_REGION
+echo "ECR Repositories created!"
+Step 2.2 — ECR mein login karo
+bash
+
+aws ecr get-login-password --region $AWS_REGION | \
+  docker login --username AWS \
+  --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+Step 2.3 — Images build aur push karo
+bash
+
+# Project root mein jaao
+cd /Users/birari/DevOps/15projects30days/GadaSmart_AI_AI_Powered_Electronics_Marketplace_with_Full_Stack_DevOps_Deployment
+# Backend build + push
+docker build -t circuitops-backend:latest ./backend
+docker tag circuitops-backend:latest \
+  $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/circuitops-backend:latest
+docker push \
+  $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/circuitops-backend:latest
+# Frontend build + push
+docker build -t circuitops-frontend:latest ./frontend
+docker tag circuitops-frontend:latest \
+  $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/circuitops-frontend:latest
+docker push \
+  $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/circuitops-frontend:latest
+echo "✅ Images pushed to ECR!"
+Step 2.4 — main.tf mein image URLs update karo
+ECR image URL format:
+
+
+123456789012.dkr.ecr.ap-south-1.amazonaws.com/circuitops-backend:latest
+terraform/main.tf mein backend deployment ka image update karo:
+
+hcl
+
+# Line ~222 — backend image
+image = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/circuitops-backend:latest"
+# Line ~324 — frontend image
+image = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/circuitops-frontend:latest"
+🌿 PHASE 3 — Terraform Variables Set Karo
+bash
+
+cd terraform/
+# terraform.tfvars edit karo
+nano terraform.tfvars
+terraform.tfvars mein apni real values fill karo:
+
+hcl
+
+# AWS
+aws_region   = "ap-south-1"
+environment  = "production"
+# EKS
+cluster_name       = "circuitops-eks"
+cluster_version    = "1.29"
+node_instance_type = "t3.medium"
+node_desired_count = 2
+node_min_count     = 1
+node_max_count     = 5
+# App
+db_password            = "YourSecurePassword@123"
+jwt_secret             = "circuitops_super_secret_jwt_2026"
+openai_api_key         = "sk-..."
+cloudinary_cloud_name  = "your_cloud_name"
+cloudinary_api_key     = "your_api_key"
+cloudinary_api_secret  = "your_api_secret"
+razorpay_key_id        = "rzp_test_..."
+razorpay_key_secret    = "your_secret"
+# Grafana
+grafana_admin_password = "CircuitOps@Grafana2026"
+🚀 PHASE 4 — Terraform Deploy (3 Steps Mein)
+IMPORTANT
+
+2-step apply zaruri hai kyunki Kubernetes aur Helm providers EKS cluster pe depend karte hain. Pehle cluster banao, phir baaki sab.
+
+Step 4.1 — Terraform Initialize karo
+bash
+
+cd terraform/
+terraform init
+Expected:
+
+
+✅ Terraform has been successfully initialized!
+   - hashicorp/aws v5.40.x installed
+   - hashicorp/kubernetes v2.30.x installed
+   - hashicorp/helm v2.13.x installed
+   - hashicorp/tls v4.x installed
+Step 4.2 — STEP 1: Sirf VPC + EKS banao (pehle)
+bash
+
+terraform apply \
+  -target=aws_vpc.circuitops \
+  -target=aws_subnet.public \
+  -target=aws_subnet.private \
+  -target=aws_internet_gateway.circuitops \
+  -target=aws_eip.nat \
+  -target=aws_nat_gateway.circuitops \
+  -target=aws_route_table.public \
+  -target=aws_route_table.private \
+  -target=aws_route_table_association.public \
+  -target=aws_route_table_association.private \
+  -target=aws_iam_role.eks_cluster_role \
+  -target=aws_iam_role_policy_attachment.eks_cluster_policy \
+  -target=aws_iam_role_policy_attachment.eks_vpc_resource_controller \
+  -target=aws_security_group.eks_cluster_sg \
+  -target=aws_eks_cluster.circuitops \
+  -target=aws_iam_role.eks_node_role \
+  -target=aws_iam_role_policy_attachment.eks_worker_node_policy \
+  -target=aws_iam_role_policy_attachment.eks_cni_policy \
+  -target=aws_iam_role_policy_attachment.eks_ecr_readonly \
+  -target=aws_iam_role_policy_attachment.eks_ssm_policy \
+  -target=aws_security_group.eks_nodes_sg \
+  -target=aws_eks_node_group.circuitops_nodes \
+  -target=aws_iam_openid_connect_provider.eks_oidc \
+  -target=aws_eks_addon.coredns \
+  -target=aws_eks_addon.kube_proxy \
+  -target=aws_eks_addon.vpc_cni
+yes type karo. EKS cluster banana ~15 minutes lagta hai! ☕
+
+
+Apply complete! Resources: 25 added, 0 changed, 0 destroyed.
+Step 4.3 — Kubeconfig update karo
+bash
+
+aws eks update-kubeconfig \
+  --region ap-south-1 \
+  --name circuitops-eks
+# Verify nodes ready hain
+kubectl get nodes
+Expected:
+
+
+NAME                                       STATUS   ROLES    AGE   VERSION
+ip-10-0-3-xx.ap-south-1.compute.internal  Ready    <none>   2m    v1.29.x
+ip-10-0-4-xx.ap-south-1.compute.internal  Ready    <none>   2m    v1.29.x
+Step 4.4 — STEP 2: Baaki sab deploy karo (App + Monitoring)
+bash
+
+terraform apply
+yes type karo. Ye deploy karega:
+
+✅ NGINX Ingress Controller (Helm)
+✅ Prometheus + Grafana + AlertManager (Helm)
+✅ Namespace gada
+✅ ConfigMap, Secrets
+✅ MySQL, Backend, Frontend Deployments
+✅ Services, Ingress, HPAs
+
+Apply complete! Resources: 15 added, 0 changed, 0 destroyed.
+✅ PHASE 5 — Deployment Verify Karo
+bash
+
+# Sab namespaces check karo
+kubectl get namespaces
+# App pods check karo
+kubectl get pods -n gada -w
+# Monitoring pods check karo
+kubectl get pods -n monitoring
+# Services check karo
+kubectl get svc -n gada
+kubectl get svc -n monitoring
+# HPA check karo
+kubectl get hpa -n gada
+# Ingress check karo
+kubectl get ingress -n gada
+Expected Pod Status:
+
+# gada namespace
+NAME                               READY   STATUS    RESTARTS
+gada-mysql-xxxx                    1/1     Running   0
+gada-backend-xxxx-1                1/1     Running   0
+gada-backend-xxxx-2                1/1     Running   0
+gada-frontend-xxxx-1               1/1     Running   0
+gada-frontend-xxxx-2               1/1     Running   0
+# monitoring namespace
+NAME                                                   READY   STATUS
+prometheus-stack-grafana-xxxx                          2/2     Running
+prometheus-stack-kube-prom-prometheus-0                2/2     Running
+prometheus-stack-kube-prom-alertmanager-0              2/2     Running
+prometheus-stack-prometheus-node-exporter-xxxx         1/1     Running
+prometheus-stack-kube-state-metrics-xxxx               1/1     Running
+📊 PHASE 6 — Grafana Access + Dashboard Setup
+Step 6.1 — Grafana Port Forward karo
+bash
+
+kubectl port-forward svc/prometheus-stack-grafana 3000:80 -n monitoring
+Browser mein kholo: http://localhost:3000
+
+Login:
+
+Username: admin
+Password: CircuitOps@Grafana2026 (jo terraform.tfvars mein rakha)
+Step 6.2 — Prometheus Port Forward karo (alag terminal)
+bash
+
+kubectl port-forward svc/prometheus-stack-kube-prom-prometheus 9090:9090 -n monitoring
+Browser mein kholo: http://localhost:9090
+
+📈 PHASE 7 — Grafana Dashboard Queries (PromQL)
+Grafana mein: Dashboards → New → New Dashboard → Add visualization
+
+🔵 Dashboard 1: CircuitOps App Health
+Panel 1 — Running Pods
+
+promql
+
+count(kube_pod_status_phase{namespace="gada", phase="Running"})
+Visualization: Stat | Title: Running Pods
+
+Panel 2 — Pod CPU Usage (%)
+
+promql
+
+sum by (pod) (
+  rate(container_cpu_usage_seconds_total{namespace="gada", container!=""}[5m])
+) * 100
+Visualization: Time series | Unit: Percent
+
+Panel 3 — Pod Memory Usage (MB)
+
+promql
+
+sum by (pod) (
+  container_memory_working_set_bytes{namespace="gada", container!=""}
+) / 1024 / 1024
+Visualization: Time series | Unit: MiB
+
+Panel 4 — Pod Restart Count
+
+promql
+
+sum by (pod) (
+  increase(kube_pod_container_status_restarts_total{namespace="gada"}[1h])
+)
+Visualization: Table | Alert if > 3
+
+🟠 Dashboard 2: Backend API Metrics
+Panel 5 — HTTP Request Rate
+
+promql
+
+sum(rate(http_requests_total{namespace="gada"}[5m])) by (method, status)
+Visualization: Time series | Unit: req/s
+
+Panel 6 — Error Rate (5xx)
+
+promql
+
+sum(rate(http_requests_total{namespace="gada", status=~"5.."}[5m]))
+/
+sum(rate(http_requests_total{namespace="gada"}[5m])) * 100
+Visualization: Gauge | Unit: Percent | Thresholds: 0=green, 1=yellow, 5=red
+
+Panel 7 — P95 Response Time
+
+promql
+
+histogram_quantile(0.95,
+  sum(rate(http_request_duration_seconds_bucket{namespace="gada"}[5m])) by (le)
+)
+Visualization: Time series | Unit: Seconds
+
+🟢 Dashboard 3: Kubernetes Cluster Health
+Panel 8 — Node CPU (%)
+
+promql
+
+100 - (
+  avg by (node) (
+    rate(node_cpu_seconds_total{mode="idle"}[5m])
+  ) * 100
+)
+Visualization: Time series | Unit: Percent
+
+Panel 9 — Node Memory (%)
+
+promql
+
+(
+  node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+) / node_memory_MemTotal_bytes * 100
+Visualization: Gauge | Unit: Percent
+
+Panel 10 — HPA Backend Scaling
+
+promql
+
+# Current replicas (line 1)
+kube_horizontalpodautoscaler_status_current_replicas{
+  namespace="gada",
+  horizontalpodautoscaler="gada-backend-hpa"
+}
+# Desired replicas (line 2 — same panel mein add karo)
+kube_horizontalpodautoscaler_status_desired_replicas{
+  namespace="gada",
+  horizontalpodautoscaler="gada-backend-hpa"
+}
+# Max replicas (line 3)
+kube_horizontalpodautoscaler_spec_max_replicas{
+  namespace="gada",
+  horizontalpodautoscaler="gada-backend-hpa"
+}
+Visualization: Time series
+
+🔴 Dashboard 4: Alerts Setup
+Grafana → Alerting → Alert Rules → New Alert Rule
+
+Alert 1: Pod Down
+
+promql
+
+count(kube_pod_status_phase{namespace="gada", phase="Running"}) < 3
+Fire when: IS BELOW 3 | For: 2m | Severity: Critical
+
+Alert 2: High CPU
+
+promql
+
+avg(rate(container_cpu_usage_seconds_total{namespace="gada"}[5m])) * 100 > 80
+Fire when: IS ABOVE 80 | For: 5m | Severity: Warning
+
+Alert 3: Pod Crash Loop
+
+promql
+
+increase(kube_pod_container_status_restarts_total{namespace="gada"}[15m]) > 2
+Fire when: IS ABOVE 2 | For: 0m | Severity: Critical
+
+🌐 PHASE 8 — Application Access
+NGINX Load Balancer URL nikalo
+bash
+
+kubectl get svc -n kube-system nginx-ingress-ingress-nginx-controller
+
+NAME                                         TYPE           EXTERNAL-IP
+nginx-ingress-ingress-nginx-controller       LoadBalancer   a1b2c3.elb.amazonaws.com
+Browser mein: http://a1b2c3.elb.amazonaws.com
+
+CircuitOps app live hai! 🎉
+
+🧹 PHASE 9 — Cleanup (Sab Delete Karna Ho To)
+bash
+
+cd terraform/
+# Sab resources delete karo
+terraform destroy
+# yes type karo
+# ~10 minutes lagenge
+CAUTION
+
+terraform destroy se sab AWS resources delete ho jayenge — EKS, VPC, NAT Gateway sab. Data bhi jaayega!
+
+🆘 Troubleshooting
+Problem	Fix
+Error: no valid credential sources	aws configure dobara run karo
+Error: cluster not ready	4.2 step mein 2-phase apply use karo
+ImagePullBackOff	ECR image URL main.tf mein update karo
+Grafana mein No data	Prometheus targets check karo: http://localhost:9090/targets
+Pods Pending state mein	kubectl describe pod <name> -n gada se reason dekho
+NAT Gateway error	EIP limit check karo (default 5/region)
+📋 Quick Cheatsheet
+bash
+
+# === AWS ===
+aws sts get-caller-identity                    # Identity check
+aws eks update-kubeconfig --region ap-south-1 --name circuitops-eks
+# === TERRAFORM ===
+terraform init                                 # Initialize
+terraform plan                                 # Dry run
+terraform apply -target=aws_eks_cluster.circuitops  # Phase 1
+terraform apply                                # Phase 2 (full)
+terraform destroy                              # Delete all
+# === KUBECTL ===
+kubectl get nodes                              # Nodes status
+kubectl get pods -n gada -w                    # App pods watch
+kubectl get pods -n monitoring                 # Monitoring pods
+kubectl logs -f <pod-name> -n gada             # Pod logs
+kubectl describe pod <pod-name> -n gada        # Pod details
+# === PORT FORWARD ===
+kubectl port-forward svc/prometheus-stack-grafana 3000:80 -n monitoring
+kubectl port-forward svc/prometheus-stack-kube-prom-prometheus 9090:9090 -n monitoring

@@ -1,0 +1,8 @@
+# .gitleaks.toml
+# Gitleaks configuration to allowlist specific files with placeholder secrets.
+
+[allowlist]
+description = "Allow base64 placeholder values in Kubernetes secret templates"
+paths = [
+    '''k8s/secret\.yml'''
+]
