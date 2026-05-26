@@ -11,11 +11,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: circuitops-backend
-<<<<<<< HEAD
-  minReplicas: 2
-=======
-  minReplicas: 1
->>>>>>> 4ad74bb0a106706b9c95248e139439e1e9e47681
+minReplicas: 1
   maxReplicas: 8
   metrics:
     - type: Resource

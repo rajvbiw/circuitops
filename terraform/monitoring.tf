@@ -39,28 +39,16 @@ resource "helm_release" "prometheus_stack" {
   repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "kube-prometheus-stack"
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
-<<<<<<< HEAD
-=======
-  timeout    = 600  # Increased for t3.small nodes
-  atomic     = false
-  wait       = false  # Don't block apply; pods will start in background
->>>>>>> 4ad74bb0a106706b9c95248e139439e1e9e47681
+
+  timeout = 600  # Increased for t3.small nodes
+  atomic  = false
+  wait    = false  # Don't block apply; pods will start in background
 
   set {
     name  = "grafana.adminPassword"
     value = var.grafana_admin_password
   }
 
-<<<<<<< HEAD
-  set {
-    name  = "grafana.persistence.enabled"
-    value = "true"
-  }
-
-  set {
-    name  = "grafana.persistence.size"
-    value = "5Gi"
-=======
   # Disable persistence to avoid PVC issues on small clusters
   set {
     name  = "grafana.persistence.enabled"
@@ -97,7 +85,6 @@ resource "helm_release" "prometheus_stack" {
   set {
     name  = "grafana.resources.requests.memory"
     value = "128Mi"
->>>>>>> 4ad74bb0a106706b9c95248e139439e1e9e47681
   }
 
   set {
