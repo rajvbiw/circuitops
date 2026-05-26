@@ -88,6 +88,8 @@ metadata:
     app.kubernetes.io/component: backend
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: circuitops-backend
@@ -221,6 +223,8 @@ metadata:
     app.kubernetes.io/component: frontend
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: circuitops-frontend
