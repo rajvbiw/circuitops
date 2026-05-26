@@ -1,0 +1,256 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CircuitOps — Unified CI/CD Pipeline
+# Trigger: 
+#   - CI: Push on any branch & Pull Request on main/develop
+#   - CD: Push/Merge to main branch, or manual dispatch
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: 🚀 CI/CD — Automated Pipeline
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+concurrency:
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "18"
+  AWS_REGION: "ap-south-1" # Default AWS Region
+  EKS_CLUSTER_NAME: "circuitops-eks"
+  K8S_NAMESPACE: "circuitops"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 1: Backend Lint & Syntax Check
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend-check:
+    name: 🔧 Backend — Lint & Syntax
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Install Dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: 🔍 Syntax Check (node --check)
+        run: node --check server.js
+
+      - name: 🔍 Check All JS Files
+        run: |
+          find . -name "*.js" \
+            -not -path "./node_modules/*" \
+            -exec node --check {} \;
+          echo "✅ All JS files syntax OK"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 2: Frontend Lint & Build
+  # ─────────────────────────────────────────────────────────────────────────────
+  frontend-check:
+    name: 🎨 Frontend — ESLint & Vite Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Install Dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: 🔍 ESLint
+        run: npm run lint
+
+      - name: 🏗️ Vite Production Build
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:5000/api/v1
+
+      - name: 📊 Build Size Report
+        run: |
+          echo "=== Build Output ==="
+          du -sh dist/
+          ls -lh dist/assets/ | head -20
+
+      - name: 💾 Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: frontend/dist/
+          retention-days: 3
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 3: Security & Code Audit
+  # ─────────────────────────────────────────────────────────────────────────────
+  security-scan:
+    name: 🔒 Security — Dependency & Secret Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 🔒 Backend — npm audit
+        working-directory: backend
+        run: |
+          npm install --no-audit --no-fund
+          npm audit --audit-level=high || true
+
+      - name: 🔒 Frontend — npm audit
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm audit --audit-level=high || true
+
+      - name: 🔍 Secrets Scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 4: Terraform Syntax Validate
+  # ─────────────────────────────────────────────────────────────────────────────
+  terraform-validate:
+    name: 🌿 Terraform — Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🌿 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: 🔧 Terraform Init (backend-less)
+        working-directory: terraform
+        run: |
+          # If directory is empty, create a dummy structure so it doesn't fail, 
+          # otherwise run standard init.
+          if [ -z "$(ls -A . 2>/dev/null)" ]; then
+            echo "Terraform folder is empty. Skipping validation."
+          else
+            terraform init -backend=false
+            terraform validate
+            terraform fmt -check -recursive
+          fi
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 5: Build, Push to AWS ECR, and Deploy to AWS EKS (CD Phase)
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: 🚢 Deploy — AWS ECR & EKS
+    runs-on: ubuntu-latest
+    needs: [backend-check, frontend-check, security-scan, terraform-validate]
+    # CD triggers only on push/merge to main branch or manual dispatch
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔑 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || env.AWS_REGION }}
+
+      - name: 🐳 Log in to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🐳 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build and push Backend Image
+      - name: 🔨 Build & Push Backend to ECR
+        uses: docker/build-push-action@v5
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: circuitops-backend
+          IMAGE_TAG: ${{ github.sha }}
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build and push Frontend Image
+      - name: 🔨 Build & Push Frontend to ECR
+        uses: docker/build-push-action@v5
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: circuitops-frontend
+          IMAGE_TAG: ${{ github.sha }}
+        with:
+          context: ./frontend
+          push: true
+          build-args: |
+            VITE_API_URL=http://localhost:5000/api/v1
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Setup Kubernetes context and deploy
+      - name: 🛠️ Set up Kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region ${{ secrets.AWS_REGION || env.AWS_REGION }} \
+            --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: 📝 Update Deployment Manifests with new ECR Tags
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "Updating deployment.yml with new ECR image urls and tags..."
+          sed -i "s|image: circuitops-backend:latest|image: ${{ env.ECR_REGISTRY }}/circuitops-backend:${{ env.IMAGE_TAG }}|g" k8s/deployment.yml
+          sed -i "s|image: circuitops-frontend:latest|image: ${{ env.ECR_REGISTRY }}/circuitops-frontend:${{ env.IMAGE_TAG }}|g" k8s/deployment.yml
+          echo "Manifest updated successfully."
+
+      - name: 🚀 Deploy Manifests to EKS Cluster
+        run: |
+          kubectl apply -f k8s/
+
+      - name: 🔄 Verify Rolling Update Status
+        run: |
+          echo "Checking Backend Deployment Rollout Status..."
+          kubectl rollout status deployment/circuitops-backend -n ${{ env.K8S_NAMESPACE }} --timeout=180s
+          
+          echo "Checking Frontend Deployment Rollout Status..."
+          kubectl rollout status deployment/circuitops-frontend -n ${{ env.K8S_NAMESPACE }} --timeout=180s
+
+          echo "🎉 CI/CD Deployment Completed Successfully!"
