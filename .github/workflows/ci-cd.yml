@@ -180,20 +180,24 @@ jobs:
         run: |
           docker compose up -d --build
 
-      - name: ⏳ Wait for MySQL & Backend to be Ready
+      - name: ⏳ Wait for MySQL, Backend & Database Seeding to be Ready
         run: |
-          echo "Waiting for backend health check..."
-          # Backend maps to port 5001 on the host machine in docker-compose.yml
+          echo "Waiting for backend and database connection..."
+          # Poll the products endpoint to ensure the database is fully seeded and accessible
           for i in {1..30}; do
-            if curl -s http://localhost:5001/health | grep -q "CircuitOps API is running smoothly"; then
-              echo "✅ Backend is healthy and running!"
+            RESPONSE=$(curl -s http://localhost:5001/api/v1/products?limit=8)
+            if echo "$RESPONSE" | grep -q "success" && echo "$RESPONSE" | grep -q "Circuit Phone"; then
+              echo "✅ Backend is healthy and products database is successfully seeded!"
               exit 0
             fi
-            echo "Waiting..."
-            sleep 2
+            echo "Waiting for database initialization..."
+            sleep 3
           done
-          echo "❌ Backend health check failed or timed out!"
-          docker compose logs
+          echo "❌ Backend or database failed to become ready in time!"
+          echo "=== Backend Logs ==="
+          docker compose logs backend
+          echo "=== MySQL Logs ==="
+          docker compose logs mysql
           exit 1
 
       - name: 🧪 Verify Backend Database Connection & API Endpoints
