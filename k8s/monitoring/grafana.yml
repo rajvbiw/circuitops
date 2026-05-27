@@ -1,6 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# GadaSmart AI – Grafana Deployment
-# Configures auto-provisioned Prometheus data source.
+# CircuitOps — Grafana Deployment (Standalone, points to Helm Prometheus)
 # ─────────────────────────────────────────────────────────────────────────────
 
 apiVersion: v1
@@ -17,7 +16,7 @@ data:
     - name: Prometheus
       type: prometheus
       access: proxy
-      url: http://prometheus-service.monitoring.svc.cluster.local:9090
+      url: http://prometheus-stack-kube-prom-prometheus.monitoring.svc.cluster.local:9090
       isDefault: true
       editable: true
 
@@ -49,16 +48,16 @@ spec:
             - name: GF_SECURITY_ADMIN_USER
               value: "admin"
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: "admin"   # ← replace or change this in production
+              value: "CircuitOps@Grafana2026"
             - name: GF_USERS_ALLOW_SIGN_UP
               value: "false"
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: "50m"
+              memory: "64Mi"
             limits:
-              cpu: "300m"
-              memory: "256Mi"
+              cpu: "200m"
+              memory: "128Mi"
           volumeMounts:
             - name: grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources
