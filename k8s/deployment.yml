@@ -47,26 +47,18 @@ spec:
           livenessProbe:
             exec:
               command:
-                - mysqladmin
-                - ping
-                - -h
-                - localhost
-                - -u
-                - root
-                - -p$(MYSQL_ROOT_PASSWORD)
+                - /bin/sh
+                - -c
+                - mysqladmin ping -h localhost -u root -p"$MYSQL_ROOT_PASSWORD"
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 3
           readinessProbe:
             exec:
               command:
-                - mysqladmin
-                - ping
-                - -h
-                - localhost
-                - -u
-                - root
-                - -p$(MYSQL_ROOT_PASSWORD)
+                - /bin/sh
+                - -c
+                - mysqladmin ping -h localhost -u root -p"$MYSQL_ROOT_PASSWORD"
             initialDelaySeconds: 20
             periodSeconds: 5
           volumeMounts:
@@ -101,7 +93,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: circuitops-backend:latest
+          image: 190444052124.dkr.ecr.ap-south-1.amazonaws.com/circuitops-backend:6790ecda2839ce9539eeb2132f03b9b440629170
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
@@ -236,7 +228,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: circuitops-frontend:latest
+          image: 190444052124.dkr.ecr.ap-south-1.amazonaws.com/circuitops-frontend:6790ecda2839ce9539eeb2132f03b9b440629170
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5173
@@ -258,11 +250,13 @@ spec:
             httpGet:
               path: /
               port: 5173
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 15
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /
               port: 5173
-            initialDelaySeconds: 10
+            initialDelaySeconds: 20
             periodSeconds: 10
+            timeoutSeconds: 5
