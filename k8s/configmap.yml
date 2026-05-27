@@ -19,4 +19,4 @@ data:
   AI_PROVIDER: "mock"
   OLLAMA_BASE_URL: "http://localhost:11434"
 
-  VITE_API_URL: "http://circuitops-backend-svc:5000/api/v1"
+  VITE_API_URL: "http://a9bd0d506a0934f01b6002058a3a704a-1733260371.ap-south-1.elb.amazonaws.com:5000/api/v1"
