@@ -252,7 +252,7 @@ jobs:
       - name: 🚀 Deploy Manifests to EKS Cluster
         run: |
           kubectl apply -f k8s/namespace.yml
-          kubectl apply -f k8s/
+          kubectl apply -R -f k8s/
 
       - name: 🔄 Verify Rolling Update Status
         run: |
