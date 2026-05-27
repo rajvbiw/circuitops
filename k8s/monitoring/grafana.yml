@@ -1,4 +1,7 @@
-───────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# GadaSmart AI – Grafana Deployment
+# Configures auto-provisioned Prometheus data source.
+# ─────────────────────────────────────────────────────────────────────────────
 
 apiVersion: v1
 kind: ConfigMap
