@@ -17,27 +17,35 @@ const aiRoutes = require('./routes/aiRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.set('trust proxy', 1);
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://a7c33e33069cf440e9aa365ee27ffea6-2115925528.ap-south-1.elb.amazonaws.com:5173',
+  'http://a9bd0d506a0934f01b6002058a3a704a-1733260371.ap-south-1.elb.amazonaws.com',
+  'https://a9bd0d506a0934f01b6002058a3a704a-1733260371.ap-south-1.elb.amazonaws.com'
+];
+
 // Enable CORS
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://a7c33e33069cf440e9aa365ee27ffea6-2115925528.ap-south-1.elb.amazonaws.com:5173'
-  ],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Express Session configuration
+const isProduction = process.env.NODE_ENV === 'production';
 app.use(session({
   secret: process.env.SESSION_SECRET || 'circuitops_super_secret_session_key_2026',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true in production if running HTTPS
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days (matches the original JWT expiry)
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   }
 }));
 
