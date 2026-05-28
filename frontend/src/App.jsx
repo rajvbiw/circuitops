@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import ProductList from './pages/ProductList';
@@ -16,10 +16,13 @@ import './App.css';
 
 function App() {
   const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth.user?.token);
 
   useEffect(() => {
-    dispatch(fetchUserProfile());
-  }, [dispatch]);
+    if (token) {
+      dispatch(fetchUserProfile());
+    }
+  }, [dispatch, token]);
 
   return (
     <Routes>

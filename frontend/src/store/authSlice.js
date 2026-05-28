@@ -65,7 +65,7 @@ const initialState = {
   user: localUser,
   loading: false,
   error: null,
-  isAuthenticated: !!localUser
+  isAuthenticated: !!localUser?.token
 };
 
 const authSlice = createSlice({
