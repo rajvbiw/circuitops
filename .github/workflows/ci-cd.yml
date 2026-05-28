@@ -266,6 +266,6 @@ jobs:
           kubectl rollout status deployment/circuitops-backend -n ${{ env.K8S_NAMESPACE }} --timeout=350s
           
           echo "Checking Frontend Deployment Rollout Status..."
-          kubectl rollout status deployment/circuitops-frontend -n ${{ env.K8S_NAMESPACE }} --timeout=400s
+          kubectl rollout status deployment/circuitops-frontend -n ${{ env.K8S_NAMESPACE }} --timeout=450s
 
           echo "🎉 CI/CD Deployment Completed Successfully!"
