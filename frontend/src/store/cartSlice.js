@@ -1,7 +1,23 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../utils/api';
 
+function getStoredToken() {
+  try {
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) return null;
+    const parsed = JSON.parse(storedUser);
+    return parsed?.token || null;
+  } catch (error) {
+    return null;
+  }
+}
+
 export const fetchCart = createAsyncThunk('cart/fetch', async (_, thunkAPI) => {
+  const token = getStoredToken();
+  if (!token) {
+    return thunkAPI.rejectWithValue('Please sign in to view your cart.');
+  }
+
   try {
     const response = await api.get('/cart');
     return response.data.cart;
@@ -11,6 +27,11 @@ export const fetchCart = createAsyncThunk('cart/fetch', async (_, thunkAPI) => {
 });
 
 export const addToCart = createAsyncThunk('cart/add', async ({ productId, quantity }, thunkAPI) => {
+  const token = getStoredToken();
+  if (!token) {
+    return thunkAPI.rejectWithValue('Please sign in to add items to your cart.');
+  }
+
   try {
     const response = await api.post('/cart', { productId, quantity });
     thunkAPI.dispatch(fetchCart());
@@ -21,6 +42,11 @@ export const addToCart = createAsyncThunk('cart/add', async ({ productId, quanti
 });
 
 export const updateCartQuantity = createAsyncThunk('cart/updateQuantity', async ({ productId, quantity }, thunkAPI) => {
+  const token = getStoredToken();
+  if (!token) {
+    return thunkAPI.rejectWithValue('Please sign in to update your cart.');
+  }
+
   try {
     const response = await api.put('/cart', { productId, quantity });
     thunkAPI.dispatch(fetchCart());
@@ -31,6 +57,11 @@ export const updateCartQuantity = createAsyncThunk('cart/updateQuantity', async 
 });
 
 export const removeFromCart = createAsyncThunk('cart/remove', async (productId, thunkAPI) => {
+  const token = getStoredToken();
+  if (!token) {
+    return thunkAPI.rejectWithValue('Please sign in to manage your cart.');
+  }
+
   try {
     const response = await api.delete(`/cart/${productId}`);
     thunkAPI.dispatch(fetchCart());
@@ -41,6 +72,11 @@ export const removeFromCart = createAsyncThunk('cart/remove', async (productId, 
 });
 
 export const clearCart = createAsyncThunk('cart/clear', async (_, thunkAPI) => {
+  const token = getStoredToken();
+  if (!token) {
+    return thunkAPI.rejectWithValue('Please sign in to manage your cart.');
+  }
+
   try {
     const response = await api.delete('/cart');
     thunkAPI.dispatch(fetchCart());
