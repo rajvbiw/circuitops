@@ -30,6 +30,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth-logout'));
     }
     return Promise.reject(error);
   }

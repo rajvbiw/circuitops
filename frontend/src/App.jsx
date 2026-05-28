@@ -11,7 +11,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
-import { fetchUserProfile } from './store/authSlice';
+import { fetchUserProfile, logoutUser } from './store/authSlice';
 import './App.css';
 
 function App() {
@@ -23,6 +23,12 @@ function App() {
       dispatch(fetchUserProfile());
     }
   }, [dispatch, token]);
+
+  useEffect(() => {
+    const handleLogoutEvent = () => dispatch(logoutUser());
+    window.addEventListener('auth-logout', handleLogoutEvent);
+    return () => window.removeEventListener('auth-logout', handleLogoutEvent);
+  }, [dispatch]);
 
   return (
     <Routes>

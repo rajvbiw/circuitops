@@ -11,6 +11,7 @@ function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const token = useSelector((state) => state.auth.user?.token);
   const cartItemCount = useSelector(selectCartItemCount);
   const { isMobileMenuOpen } = useSelector((state) => state.ui);
 
@@ -18,10 +19,10 @@ function Navbar() {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && token) {
       dispatch(fetchCart());
     }
-  }, [isAuthenticated, dispatch]);
+  }, [isAuthenticated, token, dispatch]);
 
   const handleSearch = (e) => {
     e.preventDefault();
