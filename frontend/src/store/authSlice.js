@@ -5,8 +5,9 @@ import api from '../utils/api';
 export const registerUser = createAsyncThunk('auth/register', async (userData, thunkAPI) => {
   try {
     const response = await api.post('/auth/register', userData);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
-    return response.data;
+    const userWithToken = { ...response.data.user, token: response.data.token };
+    localStorage.setItem('user', JSON.stringify(userWithToken));
+    return { ...response.data, user: userWithToken };
   } catch (error) {
     return thunkAPI.rejectWithValue(error.response?.data?.message || 'Registration failed');
   }
@@ -15,8 +16,9 @@ export const registerUser = createAsyncThunk('auth/register', async (userData, t
 export const loginUser = createAsyncThunk('auth/login', async (userData, thunkAPI) => {
   try {
     const response = await api.post('/auth/login', userData);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
-    return response.data;
+    const userWithToken = { ...response.data.user, token: response.data.token };
+    localStorage.setItem('user', JSON.stringify(userWithToken));
+    return { ...response.data, user: userWithToken };
   } catch (error) {
     return thunkAPI.rejectWithValue(error.response?.data?.message || 'Login failed');
   }
@@ -25,8 +27,9 @@ export const loginUser = createAsyncThunk('auth/login', async (userData, thunkAP
 export const googleLoginUser = createAsyncThunk('auth/googleLogin', async (googleData, thunkAPI) => {
   try {
     const response = await api.post('/auth/google-login', googleData);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
-    return response.data;
+    const userWithToken = { ...response.data.user, token: response.data.token };
+    localStorage.setItem('user', JSON.stringify(userWithToken));
+    return { ...response.data, user: userWithToken };
   } catch (error) {
     return thunkAPI.rejectWithValue(error.response?.data?.message || 'Google authentication failed');
   }
@@ -119,7 +122,10 @@ const authSlice = createSlice({
       })
       // Profile fetch
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
-        state.user = action.payload;
+        state.user = {
+          ...action.payload,
+          token: state.user?.token
+        };
         state.isAuthenticated = true;
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {

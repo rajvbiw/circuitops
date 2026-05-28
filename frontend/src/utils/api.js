@@ -10,5 +10,30 @@ const api = axios.create({
   }
 });
 
+api.interceptors.request.use((config) => {
+  try {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      if (parsed?.token) {
+        config.headers.Authorization = `Bearer ${parsed.token}`;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to attach auth token:', error);
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('user');
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
 export { BASE_URL };

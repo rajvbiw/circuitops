@@ -1,5 +1,18 @@
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'circuitops_jwt_secret_2026';
+const TOKEN_EXPIRY = '7d';
+
+function generateToken(user) {
+  return jwt.sign({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role
+  }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+}
 
 // Register User
 async function register(req, res, next) {
@@ -36,10 +49,12 @@ async function register(req, res, next) {
       role: 'customer'
     };
 
+    const token = generateToken(req.session.user);
     res.status(201).json({
       success: true,
       message: 'Registration successful!',
-      user: req.session.user
+      user: req.session.user,
+      token
     });
   } catch (error) {
     next(error);
@@ -85,10 +100,12 @@ async function login(req, res, next) {
       role: user.role
     };
 
+    const token = generateToken(req.session.user);
     res.status(200).json({
       success: true,
       message: 'Login successful!',
-      user: req.session.user
+      user: req.session.user,
+      token
     });
   } catch (error) {
     next(error);
@@ -136,10 +153,12 @@ async function googleLogin(req, res, next) {
       role: user.role
     };
 
+    const token = generateToken(req.session.user);
     res.status(200).json({
       success: true,
       message: 'Google login successful!',
-      user: req.session.user
+      user: req.session.user,
+      token
     });
   } catch (error) {
     next(error);
