@@ -19,17 +19,30 @@ const PORT = process.env.PORT || 5000;
 
 app.set('trust proxy', 1);
 
-const allowedOrigins = [
+const defaultOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://localhost:5173',
+  'https://127.0.0.1:5173',
   'http://a7c33e33069cf440e9aa365ee27ffea6-2115925528.ap-south-1.elb.amazonaws.com:5173',
+  'http://a9bd0d506a0934f01b6002058a3a704a-1733260371.ap-south-1.elb.amazonaws.com:5173',
   'http://a9bd0d506a0934f01b6002058a3a704a-1733260371.ap-south-1.elb.amazonaws.com',
   'https://a9bd0d506a0934f01b6002058a3a704a-1733260371.ap-south-1.elb.amazonaws.com'
 ];
 
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+  : defaultOrigins;
+
 // Enable CORS
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS origin not allowed: ${origin}`));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

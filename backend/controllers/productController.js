@@ -60,7 +60,7 @@ async function getAllProducts(req, res, next) {
       queryParams.push(`%${search}%`, `%${search}%`);
     }
 
-    queryStr += ` GROUP BY p.id`;
+    queryStr += ` GROUP BY p.id, c.name, c.slug`;
 
     // Having rating filter
     if (rating) {
@@ -158,7 +158,7 @@ async function getProductBySlug(req, res, next) {
       FROM products p
       LEFT JOIN reviews r ON p.id = r.product_id
       WHERE p.category_id = ? AND p.id != ? AND p.status = 'active'
-      GROUP BY p.id
+      GROUP BY p.id, p.name, p.slug, p.price, p.discount_price, p.image_url
       LIMIT 4
     `, [product.category_id, product.id]);
 

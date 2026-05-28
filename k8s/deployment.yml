@@ -94,7 +94,7 @@ spec:
       containers:
         - name: backend
           image: 190444052124.dkr.ecr.ap-south-1.amazonaws.com/circuitops-backend:6790ecda2839ce9539eeb2132f03b9b440629170
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
               name: http
@@ -144,6 +144,11 @@ spec:
                 configMapKeyRef:
                   name: circuitops-config
                   key: JWT_EXPIRES_IN
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: circuitops-config
+                  key: CORS_ORIGINS
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -229,7 +234,7 @@ spec:
       containers:
         - name: frontend
           image: 190444052124.dkr.ecr.ap-south-1.amazonaws.com/circuitops-frontend:6790ecda2839ce9539eeb2132f03b9b440629170
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 5173
               name: http

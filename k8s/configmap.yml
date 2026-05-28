@@ -15,6 +15,7 @@ data:
   DB_PORT: "3306"
   DB_USER: "root"
   DB_NAME: "circuitops_db"
+  CORS_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,https://localhost:5173,https://127.0.0.1:5173,http://a7c33e33069cf440e9aa365ee27ffea6-2115925528.ap-south-1.elb.amazonaws.com:5173,http://a9bd0d506a0934f01b6002058a3a704a-1733260371.ap-south-1.elb.amazonaws.com:5173,http://a9bd0d506a0934f01b6002058a3a704a-1733260371.ap-south-1.elb.amazonaws.com,https://a9bd0d506a0934f01b6002058a3a704a-1733260371.ap-south-1.elb.amazonaws.com"
 
   AI_PROVIDER: "mock"
   OLLAMA_BASE_URL: "http://localhost:11434"
